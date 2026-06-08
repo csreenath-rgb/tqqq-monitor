@@ -61,7 +61,15 @@ jobs:
           git add state.json history.csv index.html 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "monitor: update $(date -u +%Y-%m-%d)"
-            git push
+            # Re-sync with any commits that landed while this job ran, then push.
+            # Retry a few times so a race with a manual edit or an overlapping
+            # run doesn't fail the daily job on its final push.
+            for attempt in 1 2 3; do
+              git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" \
+                && git push && break
+              echo "push attempt $attempt rejected; re-syncing and retrying..."
+              sleep 3
+            done
           else
             echo "No changes to commit."
           fi
