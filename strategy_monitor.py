@@ -194,6 +194,45 @@ def evaluate(df, buy_buffer=0.0, sell_buffer=0.0):
 
 
 # ---------------------------------------------------------------------------
+# PERFORMANCE CURVES  (for the dashboard chart; gross, no look-ahead)
+# ---------------------------------------------------------------------------
+def build_curves(df, signals, max_points=200):
+    """Normalised (start=100) equity curves for the dashboard chart.
+
+    Builds one line per strategy plus QQQ and TQQQ buy-and-hold, all over the
+    available trailing window, each rebased so $100 invested at the start grows
+    from 100. Downsampled to ~max_points so the page stays small.
+
+    `signals` maps a display label -> that strategy's 0/1 signal Series.
+    Returns {"dates": [...], "series": {label: [floats]}}.
+    """
+    tqqq_ret = df["tqqq"].pct_change() if df["tqqq"].notna().all() \
+        else (3.0 * df["qqq"].pct_change() - (0.0086 + 2 * (df["rf"] + 0.005)) / TRADING_DAYS)
+    cash_ret = df["rf"] / TRADING_DAYS
+    qqq_ret = df["qqq"].pct_change()
+
+    raw = {}
+    for label, sig in signals.items():
+        raw[label] = _equity(tqqq_ret, cash_ret, sig)
+    raw["QQQ (buy & hold)"] = (1 + qqq_ret.fillna(0.0)).cumprod()
+    raw["TQQQ (buy & hold)"] = (1 + tqqq_ret.fillna(0.0)).cumprod()
+
+    idx = df.index
+    step = max(1, len(idx) // max_points)
+    sel = idx[::step]
+    dates = [d.date().isoformat() for d in sel]
+    series = {}
+    for label, eq in raw.items():
+        e = eq.reindex(idx).ffill()
+        base = e.iloc[0]
+        if base is None or pd.isna(base) or base == 0:
+            base = 1.0
+        norm = (e / base * 100.0).reindex(sel)
+        series[label] = [round(float(x), 2) if pd.notna(x) else None for x in norm]
+    return {"dates": dates, "series": series}
+
+
+# ---------------------------------------------------------------------------
 # MESSAGE FORMATTING
 # ---------------------------------------------------------------------------
 def format_alert(name, st, levels):
@@ -293,7 +332,7 @@ def decide_alerts(states, levels, prev_state, force=False, heartbeat_dow=None):
 
 def run(send=True, force=False):
     from alerts import send_all  # local import so tests can run without it
-    from dashboard import render
+    from dashboard import render, DISPLAY_NAMES
 
     df = fetch()
     # band is configurable via env (PERCENT). Default raw 200d cross.
@@ -301,6 +340,11 @@ def run(send=True, force=False):
     sb = float(os.environ.get("SELL_BUFFER", "0") or "0") / 100.0
     states, levels = evaluate(df, buy_buffer=bb, sell_buffer=sb)
     prev = load_state()
+
+    # Equity curves for the dashboard chart (same signals as evaluate()).
+    s1 = signal_sma_filter(df["qqq"], 200, buy_buffer=bb, sell_buffer=sb)
+    s2 = signal_sma_plus_momentum(df["qqq"], 200, 252, buy_buffer=bb, sell_buffer=sb)
+    curves = build_curves(df, {DISPLAY_NAMES["STRAT1"]: s1, DISPLAY_NAMES["STRAT2"]: s2})
 
     hb = os.environ.get("HEARTBEAT_DOW")
     hb = int(hb) if hb not in (None, "") else None
@@ -317,7 +361,7 @@ def run(send=True, force=False):
         print(f"No action. {levels['date']}: "
               + ", ".join(f"{n}={s['position']}" for n, s in states.items()))
 
-    render(states, levels, DASHBOARD_FILE)
+    render(states, levels, DASHBOARD_FILE, curves=curves)
     append_history(states, levels, alerted)
     save_state(states, levels)
     return states, levels
