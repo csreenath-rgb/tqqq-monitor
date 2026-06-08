@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TQQQ Strategy Monitor</title>
+<style>
+  :root { font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  body { margin:0; background:#f6f8fa; color:#1f2328; }
+  .wrap { max-width:880px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:22px; margin:0 0 2px; }
+  .sub { color:#656d76; font-size:13px; margin-bottom:20px; }
+  .levels { display:flex; gap:18px; flex-wrap:wrap; background:#fff; border:1px solid #d0d7de;
+             border-radius:10px; padding:14px 18px; margin-bottom:18px; font-size:14px; }
+  .levels b { font-size:18px; display:block; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px) { .cards { grid-template-columns:1fr; } }
+  .card { background:#fff; border:1px solid #d0d7de; border-radius:10px; padding:16px 18px; }
+  .card-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .name { font-weight:700; font-size:16px; }
+  .badge { color:#fff; font-size:11px; font-weight:700; padding:4px 9px; border-radius:20px; }
+  .since { color:#656d76; font-size:13px; margin-bottom:10px; }
+  table.metrics { width:100%; border-collapse:collapse; font-size:14px; }
+  table.metrics td { padding:5px 0; border-bottom:1px solid #f0f1f3; }
+  table.metrics td:last-child { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .winnote { color:#8c959f; font-size:11px; margin-top:8px; }
+  h2 { font-size:15px; margin:26px 0 8px; }
+  table.hist { width:100%; border-collapse:collapse; background:#fff; border:1px solid #d0d7de;
+               border-radius:10px; overflow:hidden; font-size:13px; }
+  table.hist th, table.hist td { padding:8px 12px; text-align:left; border-bottom:1px solid #f0f1f3; }
+  table.hist th { background:#f6f8fa; font-weight:600; }
+  .disc { color:#8c959f; font-size:11px; margin-top:24px; line-height:1.5; }
+</style></head>
+<body><div class="wrap">
+  <h1>TQQQ Strategy Monitor</h1>
+  <div class="sub">Data through close <b>2026-06-08</b> &middot; band: <b>+5% / -3% band</b> &middot; updated 2026-06-08 16:00 UTC</div>
+
+  <div class="levels">
+    <div>QQQ close<b>719.84</b></div>
+    <div>200-day avg<b>621.63</b></div>
+    <div>vs 200d avg<b>+15.8%</b></div>
+    <div>12-mo return<b>+37.8%</b></div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-h">
+        <span class="name">STRAT1</span>
+        <span class="badge" style="background:#1a7f37">RISK-ON  ·  TQQQ</span>
+      </div>
+      <div class="since">Holding since <b>2026-04-14</b></div>
+      <table class="metrics">
+        <tr><td>Trailing CAGR</td><td>39.6%</td></tr>
+        <tr><td>Max drawdown</td><td>-37.8%</td></tr>
+        <tr><td>Sharpe</td><td>0.89</td></tr>
+        <tr><td>Calmar</td><td>1.05</td></tr>
+      </table>
+      <div class="winnote">gross, trailing ~875 sessions</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <span class="name">STRAT2</span>
+        <span class="badge" style="background:#1a7f37">RISK-ON  ·  TQQQ</span>
+      </div>
+      <div class="since">Holding since <b>2026-04-14</b></div>
+      <table class="metrics">
+        <tr><td>Trailing CAGR</td><td>28.3%</td></tr>
+        <tr><td>Max drawdown</td><td>-37.8%</td></tr>
+        <tr><td>Sharpe</td><td>0.70</td></tr>
+        <tr><td>Calmar</td><td>0.75</td></tr>
+      </table>
+      <div class="winnote">gross, trailing ~875 sessions</div>
+    </div></div>
+
+  <h2>Recent history</h2>
+  <table class="hist">
+    <tr><th>Date</th><th>QQQ</th><th>200d avg</th><th>STRAT1</th><th>STRAT2</th></tr>
+    <tr><td colspan='5'>No history yet.</td></tr>
+  </table>
+
+  <div class="disc">
+    STRAT1 = hold TQQQ when QQQ is above its 200-day average, else T-bills.
+    STRAT2 = STRAT1 plus a positive trailing-12-month filter (trades less).
+    Metrics shown are <b>gross of tax</b> over the trailing window; after-tax
+    figures come from the full backtest. Signals are mechanical and act on the
+    next session. This dashboard is informational only and is <b>not investment
+    advice</b>; leveraged ETFs can lose nearly all value in a sustained decline.
+  </div>
+</div></body></html>

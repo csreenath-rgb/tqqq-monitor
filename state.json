@@ -1,0 +1,15 @@
+{
+  "last_run_date": "2026-06-08",
+  "signals": {
+    "STRAT1": 1.0,
+    "STRAT2": 1.0
+  },
+  "positions": {
+    "STRAT1": "TQQQ",
+    "STRAT2": "TQQQ"
+  },
+  "since": {
+    "STRAT1": "2026-04-14",
+    "STRAT2": "2026-04-14"
+  }
+}
