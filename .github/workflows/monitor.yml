@@ -1,0 +1,82 @@
+name: TQQQ Strategy Monitor
+
+# Runs after the US market close on weekdays and publishes the dashboard.
+# GitHub cron is UTC and can be delayed several minutes - fine for an EOD signal.
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"   # 22:30 UTC ~= 6:30pm ET (EDT) / 5:30pm (EST), after the 4pm close
+  workflow_dispatch:           # lets you trigger a manual run from the Actions tab
+    inputs:
+      force:
+        description: "Send a test alert regardless of signal"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # needed to commit state.json / history.csv back to the repo
+  pages: write
+  id-token: write
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy
+
+      - name: Run monitor
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HEARTBEAT_DOW: ${{ vars.HEARTBEAT_DOW }}   # optional repo variable, e.g. 0 = Monday
+          BUY_BUFFER: ${{ vars.BUY_BUFFER }}         # optional band, percent above 200d avg to buy
+          SELL_BUFFER: ${{ vars.SELL_BUFFER }}       # optional band, percent below 200d avg to sell
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            python strategy_monitor.py --force
+          else
+            python strategy_monitor.py
+          fi
+
+      - name: Commit state & history
+        run: |
+          git config user.name  "tqqq-monitor[bot]"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json history.csv index.html 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "monitor: update $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Upload dashboard for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy-pages:
+    needs: monitor
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
