@@ -181,6 +181,10 @@ msg = mon.format_alert("STRAT1", states["STRAT1"], levels)
 check("alert message names the action (SELL)", "SELL TQQQ" in msg, "")
 check("alert message includes 200-day level", "200-day average" in msg)
 check("alert message includes data date", levels["date"] in msg)
+check("alert + heartbeat use friendly names, not STRAT1/STRAT2",
+      "200-Day Trend" in msg and "STRAT1" not in msg
+      and "200-Day Trend" in mon.format_heartbeat(states, levels)
+      and "STRAT1" not in mon.format_heartbeat(states, levels))
 
 
 # ---------------------------------------------------------------------------
@@ -218,10 +222,24 @@ check("send_all returns a dict of channel results", set(res.keys()) == {"email",
 out = dashboard.render(states, levels, "index.html")
 html = open(out).read()
 check("dashboard writes index.html", os.path.exists("index.html"))
-check("dashboard contains both strategies", "STRAT1" in html and "STRAT2" in html)
+check("dashboard contains both strategies", "200-Day Trend" in html and "Momentum" in html)
 check("dashboard shows current QQQ close", f"{levels['qqq_close']:,.2f}" in html)
 check("dashboard contains not-advice disclaimer", "not investment" in html.lower())
 check("dashboard is non-trivial size", len(html) > 1500, f"{len(html)} bytes")
+check("dashboard omits chart when no curves given", "id=\"perf\"" not in html)
+
+# 8b. DASHBOARD draws the performance chart when curves ARE supplied
+curves = {"dates": ["2025-01-01", "2025-02-01", "2025-03-01"],
+          "series": {"200-Day Trend": [100, 110, 121],
+                     "200-Day Trend + Momentum": [100, 105, 110],
+                     "QQQ (buy & hold)": [100, 103, 107],
+                     "TQQQ (buy & hold)": [100, 95, 130]}}
+dashboard.render(states, levels, "index.html", curves=curves)
+html2 = open("index.html").read()
+check("chart canvas present with curves", "id=\"perf\"" in html2)
+check("chart includes Chart.js + all four series",
+      "chart.umd.min.js" in html2 and "TQQQ (buy & hold)" in html2
+      and "QQQ (buy & hold)" in html2 and "200-Day Trend + Momentum" in html2)
 
 
 # ---------------------------------------------------------------------------
