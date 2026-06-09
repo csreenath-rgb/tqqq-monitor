@@ -235,6 +235,17 @@ def build_curves(df, signals, max_points=200):
 # ---------------------------------------------------------------------------
 # MESSAGE FORMATTING
 # ---------------------------------------------------------------------------
+def _display(name):
+    """Map internal strategy keys (STRAT1/STRAT2) to the friendly labels shown
+    on the dashboard, so emails and Telegram read the same. Falls back to the
+    raw key if the dashboard module can't be imported for any reason."""
+    try:
+        from dashboard import DISPLAY_NAMES
+        return DISPLAY_NAMES.get(name, name)
+    except Exception:
+        return name
+
+
 def format_alert(name, st, levels):
     if st["direction"] == "RISK-ON":
         action = f"BUY TQQQ  -  move out of {SGOV} into TQQQ."
@@ -245,7 +256,7 @@ def format_alert(name, st, levels):
     mom = levels["mom_12m"]
     mom_s = f"{mom*100:+.1f}%" if mom is not None else "n/a"
     return (
-        f"\u26a0\ufe0f ACTION ITEM  -  {name} flipped {st['direction']}\n"
+        f"\u26a0\ufe0f ACTION ITEM  -  {_display(name)} flipped {st['direction']}\n"
         f"{action}\n\n"
         f"As of close {levels['date']}:\n"
         f"  QQQ close .......... {levels['qqq_close']:.2f}\n"
@@ -260,7 +271,7 @@ def format_alert(name, st, levels):
 def format_heartbeat(states, levels):
     lines = [f"\u2705 Weekly status  -  close {levels['date']}  (no action needed)"]
     for name, st in states.items():
-        lines.append(f"  {name}: holding {st['position']} since {st['since']}")
+        lines.append(f"  {_display(name)}: holding {st['position']} since {st['since']}")
     pct = levels["pct_vs_sma"]
     lines.append(f"  QQQ {levels['qqq_close']:.2f} vs 200d {levels['sma200']:.2f} "
                  f"({pct*100:+.1f}%)" if pct is not None else "")
@@ -318,7 +329,7 @@ def decide_alerts(states, levels, prev_state, force=False, heartbeat_dow=None):
 
     if transitions and not dup:
         parts = [format_alert(n, s, levels) for n, s in transitions.items()]
-        subj = "ACTION: " + ", ".join(f"{n} {s['direction']}" for n, s in transitions.items())
+        subj = "ACTION: " + ", ".join(f"{_display(n)} {s['direction']}" for n, s in transitions.items())
         return subj, "\n\n" + ("\n\n" + "-" * 40 + "\n\n").join(parts)
 
     if force:
